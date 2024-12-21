@@ -1,0 +1,2 @@
+# The Niffler PNG Extractor
+

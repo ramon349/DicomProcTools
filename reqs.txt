@@ -1,0 +1,7 @@
+numpy==1.26.4
+pydicom==2.4.4
+python-gdcm==3.0.23.1
+nibabel==5.2.1
+tqdm==4.65.0
+pandas==2.2.3
+pypng
