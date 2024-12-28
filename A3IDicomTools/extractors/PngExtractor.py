@@ -93,6 +93,10 @@ class PngExtractor():
             if not os.path.exists(fail_dir):
                 os.makedirs(fail_dir)
         print(f"Done Creating Directories")
+    def get_dicom_files(self): 
+        filelist = Path(self.dicom_home).rglob("*.dcm")
+        return filelist
+
     def execute(self):
         err = None
         fix_mismatch()  # TODO: hold over from old processing code could be improved? 
@@ -105,7 +109,7 @@ class PngExtractor():
         else:
             print(self.dicom_home)
             print("Getting all the dcms in your project. May take a while :)")
-            filelist = Path(self.dicom_home).rglob("*.dcm")
+            filelist = self.get_dicom_files()
         # TODO: if there is a more understandable way of using imap where some parameters that are constant let me know
         # some version of python has it so you can define keyword args will look into later
         extractor = partial(
@@ -114,7 +118,6 @@ class PngExtractor():
             publicHeadersOnly=self.PublicHeadersOnly,
             failDir=self.failed,
             print_images =self.print_images,
-            ApplyVOILUT=self.ApplyVOILUT
         )
         t_start = time.time()
         self.run_extraction(extractor,filelist,core_count=core_count,SaveBatchSize=self.SaveBatchSize,output_dir=self.output_directory)
