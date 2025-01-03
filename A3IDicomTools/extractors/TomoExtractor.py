@@ -25,7 +25,7 @@ class TomoExtractor(PngExtractor):
 
         dcm = pyd.dcmread(dcmPath, force=True)
         dicom_tags = extract_dcm(dcm, dcm_path=dcmPath, PublicHeadersOnly=publicHeadersOnly)
-        if dicom_tags['SOPClassUID']in self.valid_uids: 
+        if 'SOPClassUID' in dicom_tags and dicom_tags['SOPClassUID'] in self.valid_uids: 
             if print_images and dicom_tags is not None:
                 png_path, err_code = self.extract_images(
                     dcm, png_destination=pngDestination ,ApplyVOILUT=ApplyVOILUT
