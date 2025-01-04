@@ -76,6 +76,7 @@ def build_args():
     parser.add_argument("--SpecificHeadersOnly", type=str, required=True, default=False)
     parser.add_argument("--ApplyVOILUT",type=parse_bool,required=True,default=True)
     parser.add_argument("--Extractor",type=str,required=True,choices=ExtractorRegister.get_extractors())
+    parser.add_argument("--HashSeed",type=int,required=False,default=42)
     return parser
 
 def get_params():

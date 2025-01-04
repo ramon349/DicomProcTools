@@ -1,18 +1,10 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 import os
 import glob
-from shutil import copyfile
 import hashlib
-import json
-import sys
-import subprocess
 import logging
 from multiprocessing.pool import ThreadPool as Pool
-import pdb
 import time
 import pickle
-import argparse
 import numpy as np
 import pandas as pd
 import pydicom as pyd
@@ -21,7 +13,6 @@ from pydicom.pixel_data_handlers import apply_voi_lut
 # pydicom imports needed to handle data errors
 from pydicom import config
 from pydicom import values
-import sys
 import pathlib
 from pathlib import Path
 from functools import partial
@@ -94,7 +85,7 @@ class PngExtractor():
                 os.makedirs(fail_dir)
         print(f"Done Creating Directories")
     def get_dicom_files(self): 
-        filelist = Path(self.dicom_home).rglob("*.dcm")
+        filelist = [str(e) for e in Path(self.dicom_home).rglob("*.dcm") ]
         return filelist
 
     def execute(self):
@@ -138,8 +129,8 @@ class PngExtractor():
     def run_extraction(self,extract_func,file_gen,core_count=1,SaveBatchSize=25,output_dir=None):
         counter =0 
         with Pool(core_count) as p:
-            meta_rows= list()
-            for i, dcm_meta in tqdm(enumerate(p.imap_unordered(extract_func,file_gen))):
+            meta_rows= list() 
+            for i, dcm_meta in tqdm(enumerate(p.imap_unordered(extract_func,file_gen)),total=len(file_gen)):
                 if  dcm_meta is None:  #SHOULD ONLY BE NONE IF THINGS ARE FILTERED
                     continue 
                 meta_rows.append(dcm_meta)
@@ -175,20 +166,14 @@ class PngExtractor():
         dicom_tags = extract_dcm(dcm, dcm_path=dcmPath, PublicHeadersOnly=publicHeadersOnly)
         if print_images and dicom_tags is not None:
             png_path, err_code = self.extract_images(
-                dcm, png_destination=pngDestination, failed=failDir,ApplyVOILUT=ApplyVOILUT
+                dcm, png_destination=pngDestination,ApplyVOILUT=ApplyVOILUT
             )
         else:
             png_path = None
         dicom_tags["png_path"] = png_path
         dicom_tags["err_code"] = err_code
         return dicom_tags
-    # Function to extract pixel array information
-    # takes an integer used to index into the global filedata dataframe
-    # returns tuple of
-    # filemapping: dicom to png paths   (as str)
-    # fail_path: dicom to failed folder (as tuple)
-    # found_err: error code produced when processing
-    def extract_images(ds, png_destination,ApplyVOILUT=False):
+    def extract_images(self,ds, png_destination,ApplyVOILUT=False):
         """
         Function that  extracts a dicom pixel arrayinto a png image. Patient metadata is used to create the file name
         Supports extracting either RGB or Monochrome images. No LUT or VOI is applied at the moment
