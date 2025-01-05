@@ -25,8 +25,9 @@ class TomoExtractor(PngExtractor):
         dicom_tags = extract_dcm(dcm, dcm_path=dcmPath, PublicHeadersOnly=publicHeadersOnly)
         if 'SOPClassUID' in dicom_tags and dicom_tags['SOPClassUID'] in self.valid_uids: 
             if print_images and dicom_tags is not None:
+                dcm_code = dicom_tags['SOPClassUID']
                 png_path, err_code = self.extract_images(
-                    dcm, png_destination=pngDestination ,ApplyVOILUT=ApplyVOILUT
+                    dcm, png_destination=pngDestination ,ApplyVOILUT=ApplyVOILUT,code=dcm_code
                 )
             else:
                 png_path = None
@@ -36,7 +37,7 @@ class TomoExtractor(PngExtractor):
         else: 
             logging.warning(f"{dcmPath} skipped not valid Tomo")
             return None 
-    def extract_images(self,ds, png_destination,ApplyVOILUT=False):
+    def extract_images(self,ds, png_destination,ApplyVOILUT=False,code=None):
         """
         Function that  extracts a dicom pixel arrayinto a png image. Patient metadata is used to create the file name
         Supports extracting either RGB or Monochrome images. No LUT or VOI is applied at the moment
@@ -69,7 +70,7 @@ class TomoExtractor(PngExtractor):
             store_dir = os.path.join(png_destination, folderName)
             os.makedirs(store_dir, exist_ok=True)
             pngfile = os.path.join(store_dir, img_name)
-            vol = self.convert_multiframe_dicom(ds) 
+            vol = self.convert_multiframe_dicom(ds,code) 
             nib.save(vol,pngfile)
         except AttributeError as error:
             found_err = error
