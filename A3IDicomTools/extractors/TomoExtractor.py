@@ -26,12 +26,12 @@ class TomoExtractor(PngExtractor):
         if 'SOPClassUID' in dicom_tags and dicom_tags['SOPClassUID'] in self.valid_uids: 
             if print_images and dicom_tags is not None:
                 dcm_code = dicom_tags['SOPClassUID']
-                png_path, err_code = self.extract_images(
+                img_path, err_code = self.extract_images(
                     dcm, png_destination=pngDestination ,ApplyVOILUT=ApplyVOILUT,code=dcm_code
                 )
             else:
-                png_path = None
-            dicom_tags["png_path"] = png_path
+                img_path = None
+            dicom_tags["image_path"] =img_path 
             dicom_tags["err_code"] = err_code
             return dicom_tags
         else: 
@@ -64,9 +64,6 @@ class TomoExtractor(PngExtractor):
             )
             img_iden = f"{ID3}"
             img_name = hashlib.sha224(img_iden.encode("utf-8")).hexdigest() + ".nii.gz"
-
-            # check for existence of the folder tree patient/study/series. Create if it does not exist.
-
             store_dir = os.path.join(png_destination, folderName)
             os.makedirs(store_dir, exist_ok=True)
             pngfile = os.path.join(store_dir, img_name)
@@ -92,7 +89,7 @@ class TomoExtractor(PngExtractor):
         if code==TomoEnum.MAMMO.value:
             return self._convert_mammo_multframe(dcm) 
         if code==TomoEnum.OCT.value:
-            return self._convert_mammo_multframe
+            return self._convert_oct_multiframe(dcm)
         else: 
             raise Exception("I've never seen this Tomo Class")
 
@@ -113,7 +110,7 @@ class TomoExtractor(PngExtractor):
         my_aff = nib.affines.from_matvec(aff,vector=other)
         my_vol = nib.nifti1.Nifti1Image(arr,affine=my_aff)
         return my_vol
-    def _convert_oct_multiframe(dcm): 
+    def _convert_oct_multiframe(self,dcm): 
         arr = dcm.pixel_array
         z_rez = dcm[0x0022,0x0035].value/1000#note this is microns 
         x_res = dcm[0x0022,0x0037].value/1000

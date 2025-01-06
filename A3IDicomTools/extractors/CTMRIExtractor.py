@@ -37,18 +37,18 @@ class MRICTExractor(PngExtractor):
             #only yield if we haven't seen this dir before
             if vol_dir not in running_list: 
                 running_list.add(vol_dir )
-                yield vol_dir
+        return list(running_list)
     def image_proc(self, dcmPath, pngDestination = None, publicHeadersOnly = None, failDir = None, print_images=None):
         sample_dcm = next(Path(dcmPath).rglob("*.dcm"))
         dcm = pyd.dcmread(sample_dcm, force=True)
         dicom_tags = extract_dcm(dcm, dcm_path=sample_dcm, PublicHeadersOnly=publicHeadersOnly)
         if print_images and dicom_tags is not None:
-            png_path, err_code = self.extract_images(
+            img_path, err_code = self.extract_images(
                 dcmPath,dcm,png_destination=pngDestination
             )
         else:
-            png_path = None
-        dicom_tags["nifti_path"] = png_path
+            img_path = None
+        dicom_tags["nifti_path"] = img_path
         dicom_tags["err_code"] = err_code
         return dicom_tags
     def extract_images(self,dcmDir,sample_dcm, png_destination):

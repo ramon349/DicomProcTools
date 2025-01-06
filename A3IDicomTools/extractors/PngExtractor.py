@@ -88,19 +88,24 @@ class PngExtractor():
         filelist = [str(e) for e in Path(self.dicom_home).rglob("*.dcm") ]
         return filelist
 
+    def _get_filelist(self): 
+        if os.path.isfile(self.pickle_file):
+            f = open(self.pickle_file, "rb")
+            filelist = pickle.load(f)
+        else:
+            filelist = self.get_dicom_files()
+            self._write_filelist(filelist)
+        return filelist 
+    def _write_filelist(self,filelist): 
+        with open(self.pickle_file,'wb') as f: 
+            pickle.dump(filelist,f)
     def execute(self):
         err = None
         fix_mismatch()  # TODO: hold over from old processing code could be improved? 
         core_count =self.processes 
         # gets all dicom files. if editing this code, get filelist into the format of a list of strings,
         # with each string as the file path to a different dicom file.
-        if os.path.isfile(self.pickle_file):
-            f = open(self.pickle_file, "rb")
-            filelist = pickle.load(f)
-        else:
-            print(self.dicom_home)
-            print("Getting all the dcms in your project. May take a while :)")
-            filelist = self.get_dicom_files()
+        filelist = self._get_filelist()
         # TODO: if there is a more understandable way of using imap where some parameters that are constant let me know
         # some version of python has it so you can define keyword args will look into later
         extractor = partial(
