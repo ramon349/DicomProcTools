@@ -18,6 +18,7 @@ from pathlib import Path
 from functools import partial
 import re 
 from tqdm import tqdm 
+from pathlib import Path 
 
 class ExtractorRegister: 
     __data = {} 
@@ -54,6 +55,7 @@ class PngExtractor():
         self.png_destination = os.path.join(self.output_directory, "extracted-images")
         self.failed = os.path.join(self.output_directory, "failed-dicom")
         meta_directory = os.path.join(self.output_directory, "meta")
+        self.meta_counter= 0 #used for keeping track of what metadata file we are to write
         LOG_FILENAME = os.path.join(self.output_directory, "ImageExtractor.out")
         #this will be a list of all the dicom files to extract 
         self.pickle_file = os.path.join(
@@ -91,11 +93,32 @@ class PngExtractor():
     def _get_filelist(self): 
         if os.path.isfile(self.pickle_file):
             f = open(self.pickle_file, "rb")
-            filelist = pickle.load(f)
+            filelist = pickle.load(f) 
+            filelist= self.prune_extracted(filelist)
         else:
             filelist = self.get_dicom_files()
+            if os.path.isdir(self.meta_directory): #means we are resumming without pickle
+                print(f"We didn't have a pickle file but resuming using found metadata")
+                filelist= self.prune_extracted(filelist)
             self._write_filelist(filelist)
         return filelist 
+    def prune_extracted(self,filelist):
+        meta_csvs = [str(e) for e in Path(self.meta_directory).rglob("*.csv")]
+        all_files = set() 
+        max_batch=0 
+        for e in tqdm(meta_csvs,total=len(meta_csvs)): 
+            batch_id= int(os.path.split(e)[1].split('.')[0].split('_')[1])
+            df = pd.read_csv(e,dtype='str',usecols=['file'])
+            all_files.update(df['file'].unique().tolist())
+            if batch_id>= max_batch: 
+                max_batch= batch_id
+        print(f"Number of total files is {len(filelist)}") 
+        print(f"Number of extracted files was {len(all_files)}") 
+        filtered =  [e for e in filelist if e not in all_files] 
+        print(f"Resuming Extraction with {len(filtered)}")
+        self.meta_counter = max_batch+1  # we do +1 because we will start writing the next batch
+        return filtered        
+
     def _write_filelist(self,filelist): 
         with open(self.pickle_file,'wb') as f: 
             pickle.dump(filelist,f)
@@ -132,7 +155,6 @@ class PngExtractor():
         logs.append("The PNG conversion is SUCCESSFUL")
         return logs
     def run_extraction(self,extract_func,file_gen,core_count=1,SaveBatchSize=25,output_dir=None):
-        counter =0 
         with Pool(core_count) as p:
             meta_rows= list() 
             for i, dcm_meta in tqdm(enumerate(p.imap_unordered(extract_func,file_gen)),total=len(file_gen)):
@@ -142,15 +164,15 @@ class PngExtractor():
                 if len(meta_rows) >= SaveBatchSize:
                     meta_df = pd.DataFrame(meta_rows)
                     meta_rows = list()
-                    csv_destination = f"{output_dir}/meta/metadata_{counter}.csv"
-                    counter += 1
+                    csv_destination = f"{output_dir}/meta/metadata_{self.meta_counter}.csv"
+                    self.meta_counter += 1
                     meta_df.to_csv(csv_destination) 
         #save if theres any remaining data 
         if meta_rows: 
             meta_df = pd.DataFrame(meta_rows)
             meta_rows = list()
-            csv_destination = f"{output_dir}/meta/metadata_{counter}.csv"
-            counter += 1
+            csv_destination = f"{output_dir}/meta/metadata_{self.meta_counter}.csv"
+            self.meta_counter += 1
             meta_df.to_csv(csv_destination) 
 
     def image_proc(self,
