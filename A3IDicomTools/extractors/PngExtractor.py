@@ -91,6 +91,11 @@ class PngExtractor():
         return filelist
 
     def _get_filelist(self): 
+        """
+            Produces list of dicom files to extract. Saves the list as a pickle file
+            In the case of a workloads that are resumed we use exisitng metadata to prune the filelist
+            and resume from the remainig list
+        """
         if os.path.isfile(self.pickle_file):
             f = open(self.pickle_file, "rb")
             filelist = pickle.load(f) 
@@ -103,6 +108,9 @@ class PngExtractor():
             self._write_filelist(filelist)
         return filelist 
     def prune_extracted(self,filelist):
+        """
+            Shortens extraction file list using exisitng metadta csvs.
+        """
         meta_csvs = [str(e) for e in Path(self.meta_directory).rglob("*.csv")]
         all_files = set() 
         max_batch=0 
