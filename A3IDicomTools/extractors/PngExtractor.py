@@ -299,7 +299,7 @@ def get_tuples(plan, PublicHeadersOnly, key=""):
                 elif type(value) is pyd.valuerep.IS:
                     value = str(value)
                 elif type(value) is pyd.valuerep.MultiValue:
-                    value = tuple(value)
+                    value = str(tuple(value))
                 elif type(value) is pyd.uid.UID:
                     value = str(value)
                 outlist.append((key + tag, value))
