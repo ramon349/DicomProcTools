@@ -7,6 +7,7 @@ import png
 from .PngExtractor import PngExtractor,extract_dcm,ExtractorRegister
 import nibabel as nib 
 from enum import Enum
+from ..utils.helpers import apply_window
 class TomoEnum(Enum):
     MAMMO='1.2.840.10008.5.1.4.1.1.13.1.3'
     OCT="1.2.840.10008.5.1.4.1.1.77.1.5.4" 
@@ -115,6 +116,29 @@ class TomoExtractor(PngExtractor):
         z_rez = dcm[0x0022,0x0035].value/1000#note this is microns 
         x_res = dcm[0x0022,0x0037].value/1000
         y_res = dcm[0x0022,0x0037].value/1000
+        aff = np.zeros((3,3))
+        aff[0,0]= x_res 
+        aff[1,1]=y_res 
+        aff[2,2]=z_rez
+        other=  np.array([0,0,1])
+        my_aff = nib.affines.from_matvec(aff,vector=other)
+        my_vol = nib.nifti1.Nifti1Image(arr,affine=my_aff)
+        return my_vol
+
+@ExtractorRegister.register("TOMOwTagSearch")
+class TomoMayo(TomoExtractor):
+    def __init__(self, config):
+        super().__init__(config)
+    def _convert_mammo_multframe(self,dcm):
+        arr = dcm.pixel_array
+        arr = apply_window(dcm,arr)
+        frame_info = dcm[0x5200,0x9230][0]
+        pixel_info = frame_info[0x0028,0x9110][0]
+        slice_thickness= pixel_info[0x0018,0x0050].value 
+        pixel_spacing = pixel_info[0x0028,0x0030].value
+        z_rez = slice_thickness#note this is microns 
+        x_res = pixel_spacing[0]
+        y_res = pixel_spacing[1]
         aff = np.zeros((3,3))
         aff[0,0]= x_res 
         aff[1,1]=y_res 

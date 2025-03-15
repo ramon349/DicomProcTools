@@ -270,7 +270,7 @@ class PngExtractor():
 
 
 # Function for getting tuple for field,val pairs
-def get_tuples(plan, PublicHeadersOnly, key=""):
+def get_tuples(plan, PublicHeadersOnly, key="",conserve_expansion=True):
     plans = plan.dir()
     outlist = list()
     for tag in plans: 
