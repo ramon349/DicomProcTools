@@ -16,10 +16,9 @@ from pydicom import values
 import pathlib
 from pathlib import Path
 from functools import partial
-import re 
 from tqdm import tqdm 
 from pathlib import Path 
-
+from .extractUtils import extract_all_tags
 class ExtractorRegister: 
     __data = {} 
     @classmethod 
@@ -198,7 +197,7 @@ class PngExtractor():
         publicHeadersOnly: only use public headers
         """
         dcm = pyd.dcmread(dcmPath, force=True)
-        dicom_tags = extract_dcm(dcm, dcm_path=dcmPath, PublicHeadersOnly=publicHeadersOnly)
+        dicom_tags = extract_dcm(dcm, PublicHeadersOnly=publicHeadersOnly)
         if print_images and dicom_tags is not None:
             png_path, err_code = self.extract_images(
                 dcm, png_destination=pngDestination,ApplyVOILUT=ApplyVOILUT
@@ -267,46 +266,6 @@ class PngExtractor():
             pngfile = None
         return (pngfile, err_code)
 
-
-
-# Function for getting tuple for field,val pairs
-def get_tuples(plan, PublicHeadersOnly, key="",conserve_expansion=True):
-    plans = plan.dir()
-    outlist = list()
-    for tag in plans: 
-        try: 
-            hasattr(plan,tag)
-        except TypeError as e: 
-            logging.warning(f"Type Error Occured parsing tag {tag}") 
-        if hasattr(plan, tag) and tag != 'PixelData':
-            value = getattr(plan, tag)
-            # if dicom sequence extract tags from each element
-            if type(value) is pyd.sequence.Sequence:
-                for nn, ss in enumerate(list(value)):
-                    newkey = "_".join([key, ("%d" % nn), tag]) if len(key) else "_".join([("%d" % nn), tag])
-                    candidate = get_tuples(ss, PublicHeadersOnly, key=newkey)
-                    if len(candidate)>=25:
-                        logging.warning(f"Expansion of tag {tag} has more than 10 items. Check if needed")
-                        continue 
-                    for n_tag,n_val in candidate: 
-                        if re.match("\d{1,}_",n_tag):
-                            continue
-                        else:
-                            outlist.append((newkey+n_tag,value))
-            else:
-                if type(value) is pyd.valuerep.DSfloat:
-                    value = float(value)
-                elif type(value) is pyd.valuerep.IS:
-                    value = str(value)
-                elif type(value) is pyd.valuerep.MultiValue:
-                    value = str(tuple(value))
-                elif type(value) is pyd.uid.UID:
-                    value = str(value)
-                outlist.append((key + tag, value))
-    return outlist
-
-
-
 def extract_dcm(
     plan: pyd.Dataset,
     dcm_path: str,
@@ -317,24 +276,12 @@ def extract_dcm(
     Extract dicom tags from dicom file. Public tags are filtered if specified.
     PNG
     """
-    # checks all dicom fields to make sure they are valid
-    # if an error occurs, will delete it from the data structure
-    dcm_dict_copy = list(plan._dict.keys())
-
-    for tag in dcm_dict_copy:
-        try:
-            plan[tag]
-        except:
-            logging.warning("dropped fatal DICOM tag {}".format(tag))
-            del plan[tag]
     c = True
     try:
         check = plan.pixel_array  # throws error if dicom file has no image
     except:
         c = False
-    kv = get_tuples(
-        plan, PublicHeadersOnly
-    )  # gets tuple for field,val pairs for this file. function defined above
+    kv =  extract_all_tags(plan)
     dicom_tags_limit = (
         1000  # TODO: i should add this as some sort of extra limit in the config
     )
@@ -380,6 +327,7 @@ def process_image(ds,is16Bit,ApplyVOILUT=False):
         isRGB = False
     image_2d = ds.pixel_array 
     if ApplyVOILUT: 
+        image_2d = cust_voi(image_2d,ds)
         image_2d = apply_voi_lut(image_2d,ds,prefer_lut=True)
     image_2d = image_2d.astype(float)
     shape = ds.pixel_array.shape
@@ -398,7 +346,8 @@ def process_image(ds,is16Bit,ApplyVOILUT=False):
         # Write the PNG file
     return image_2d_scaled,shape,isRGB,bit_depth
 
-
+def cust_voi(arr,ds):
+    
 # Function when pydicom fails to read a value attempt to read as other types.
 def fix_mismatch_callback(raw_elem, **kwargs):
     """
