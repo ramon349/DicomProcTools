@@ -346,7 +346,6 @@ def process_image(ds,is16Bit,ApplyVOILUT=False):
         # Write the PNG file
     return image_2d_scaled,shape,isRGB,bit_depth
 
-def cust_voi(arr,ds):
     
 # Function when pydicom fails to read a value attempt to read as other types.
 def fix_mismatch_callback(raw_elem, **kwargs):

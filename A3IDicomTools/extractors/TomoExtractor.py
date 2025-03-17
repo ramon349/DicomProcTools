@@ -7,7 +7,7 @@ import png
 from .PngExtractor import PngExtractor,extract_dcm,ExtractorRegister
 import nibabel as nib 
 from enum import Enum
-from ..utils.helpers import apply_window
+from .extractUtils import apply_window
 class TomoEnum(Enum):
     MAMMO='1.2.840.10008.5.1.4.1.1.13.1.3'
     OCT="1.2.840.10008.5.1.4.1.1.77.1.5.4" 
