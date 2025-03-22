@@ -61,6 +61,7 @@ class PngExtractor():
             self.output_directory, "ImageExtractor.pickle"
         ) 
         self.ApplyVOILUT= config['ApplyVOILUT']
+        self.ExtractNested = config['ExtractNested']
         self.populate_extraction_dirs()
         logging.basicConfig(filename=LOG_FILENAME, level=logging.DEBUG)
         logging.info("------- Values Initialization DONE -------")
@@ -281,7 +282,7 @@ def extract_dcm(
         check = plan.pixel_array  # throws error if dicom file has no image
     except:
         c = False
-    kv =  extract_all_tags(plan)
+    kv =  extract_all_tags(plan,extract_nested=False)
     dicom_tags_limit = (
         1000  # TODO: i should add this as some sort of extra limit in the config
     )
@@ -289,17 +290,13 @@ def extract_dcm(
         len(kv) > dicom_tags_limit
     ):  # TODO this should not fail silently. What can we do  about it
         logging.debug(str(len(kv)) + " dicom tags produced by " + dcm_path)
-    kv.append(("file", dcm_path))  # adds my custom field with the original filepath
-    kv.append(("has_pix_array", c))  # adds my custom field with if file has image
+    kv['file'] = dcm_path
+    kv['has_pix_array']=c
     if c:
         # adds my custom category field - useful if classifying images before processing
-        kv.append(("category", "uncategorized"))
+        kv['category'] = "uncategorized"
     else:
-        kv.append(
-            ("category", "no image")
-        )  # adds my custom category field, makes note as imageless
-
-    kv = dict(kv)
+        kv['category'] = 'no image'
     if 'Pixel Data' in kv: 
         del kv['Pixel Data']
     return kv  
