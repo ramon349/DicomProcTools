@@ -2,7 +2,7 @@ import os
 import glob
 import hashlib
 import logging
-from multiprocessing.pool import ThreadPool as Pool
+from multiprocessing import Pool
 import time
 import pickle
 import numpy as np
@@ -47,7 +47,7 @@ class PngExtractor():
             pathlib.PurePath(config["DICOMHome"])
         )  # parse the path and convert it to a string
         self.output_directory = str(pathlib.Path(config["OutputDirectory"]))
-        self.print_images = config["SavePNGs"]
+        self.print_images = config["SaveImages"]
         self.PublicHeadersOnly = config["PublicHeadersOnly"]
         self.processes = config["NumProcesses"]
         self.SaveBatchSize = config["SaveBatchSize"]
@@ -62,6 +62,7 @@ class PngExtractor():
         ) 
         self.ApplyVOILUT= config['ApplyVOILUT']
         self.ExtractNested = config['ExtractNested']
+        self.Debug = config['Debug']
         self.populate_extraction_dirs()
         logging.basicConfig(filename=LOG_FILENAME, level=logging.DEBUG)
         logging.info("------- Values Initialization DONE -------")
@@ -106,6 +107,11 @@ class PngExtractor():
                 print(f"We didn't have a pickle file but resuming using found metadata")
                 filelist= self.prune_extracted(filelist)
             self._write_filelist(filelist)
+        if self.Debug:
+            from random import choices
+            logging.warning("We have debug enabled with a max of 200 DCMS")
+            logging.warning("Make sure to remove picklefiles when doing full")
+            filelist= choices(filelist,k=min(200,len(filelist)))
         return filelist 
     def prune_extracted(self,filelist):
         """
