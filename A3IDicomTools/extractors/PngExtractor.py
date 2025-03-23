@@ -330,7 +330,6 @@ def process_image(ds,is16Bit,ApplyVOILUT=False):
         isRGB = False
     image_2d = ds.pixel_array 
     if ApplyVOILUT: 
-        image_2d = cust_voi(image_2d,ds)
         image_2d = apply_voi_lut(image_2d,ds,prefer_lut=True)
     image_2d = image_2d.astype(float)
     shape = ds.pixel_array.shape
