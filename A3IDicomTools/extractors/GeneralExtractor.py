@@ -215,5 +215,5 @@ def general_extract(work_tup,save_dir=None,print_images=None):
             meta_row = process_png(dcm_path,save_dir=save_dir,print_images=print_images)
         case StorageClass.OTHER: 
             meta_row = process_general(dcm_path)
-    return meta_row 
+    return meta_row
 
