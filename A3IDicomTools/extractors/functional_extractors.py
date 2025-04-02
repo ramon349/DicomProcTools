@@ -12,6 +12,8 @@ from enum import StrEnum,Enum
 from dicom2nifti.common import multiframe_create_affine
 import nibabel as nib 
 from pathlib import Path 
+from .extractUtils import get_window_param as get_window_fallback 
+
 class MammoTomoTags(Enum): 
     #TODO make a custum enum class that makes it so i don't have to call .value 
     SharedFunctionalGroupSequence = [0x5200,0x9229]
@@ -23,10 +25,10 @@ class MammoTomoTags(Enum):
 
 def run_hash(s): 
     return  hashlib.sha224(s.encode("utf-8")).hexdigest()
-def make_hashpath(dcm,save_dir,extension): 
+def make_hashpath(dcm,dcm_path,save_dir,extension): 
     pID = run_hash(dcm.PatientID )
     studyID = run_hash(dcm.StudyInstanceUID)
-    seriesId = run_hash(dcm.SeriesInstanceUID)
+    seriesId = run_hash(str(dcm_path))
     folder_name=  os.path.join(save_dir,pID,studyID)
     os.makedirs(folder_name,exist_ok=True)
     save_path = os.path.join(folder_name,f"{seriesId}{extension}")
@@ -46,7 +48,7 @@ def process_png(dcm_path,save_dir,print_images):
     err_code = 0 
     if print_images: 
         try: 
-            png_path = make_hashpath(dcm,save_dir,extension=".png")
+            png_path = make_hashpath(dcm,dcm_path,save_dir,extension=".png")
             image_2d_scaled,arr_shape,isRGB,bit_depth = process_image(dcm) 
             with open(png_path, "wb") as png_file:
                 if isRGB:
@@ -74,12 +76,12 @@ def process_tomo(dcm_path,save_dir,print_images):
     stop_before_pixels = False if print_images else  True 
     dcm = pyd.dcmread(dcm_path,stop_before_pixels=stop_before_pixels)
     dcm_tags =extract_all_tags(dcm,extract_nested=True)
-    nifti_path = make_hashpath(dcm,save_dir,extension=".nii.gz")
+    nifti_path = make_hashpath(dcm,dcm_path,save_dir,extension=".nii.gz")
     err_code = 0 
     if print_images:
         try: 
             arr = dcm.pixel_array
-            arr = _make_mammo_img(dcm,arr)
+            arr = _make_mammo_img(dcm,arr,dcm_tags)
             affine,max_slice_inc = multiframe_create_affine([dcm],arr) 
             my_vol = nib.nifti1.Nifti1Image(arr,affine=affine)
             nib.save(my_vol,nifti_path)
@@ -101,7 +103,7 @@ def process_ctmri(dcm_path,save_dir,print_images):
     sample_dcm = next(Path(dcm_path).rglob("*.dcm"))
     dcm = pyd.dcmread(sample_dcm, stop_before_pixels=stop_before_pixels)
     dcm_tags =extract_all_tags(dcm,extract_nested=True)
-    nifti_path = make_hashpath(dcm,save_dir,extension=".nii.gz")
+    nifti_path = make_hashpath(dcm,dcm_path,save_dir,extension=".nii.gz")
     err_code = 0 
     if print_images:
         try: 
@@ -141,7 +143,7 @@ def process_image(ds,is16Bit=True):
     except:
         isRGB = False
     image_2d = ds.pixel_array 
-    image_2d = pyd_pixels.apply_windowing(image_2d,ds)
+    image_2d = pyd_pixels.apply_voi_lut(image_2d,ds,prefer_lut=True)
     image_2d = image_2d.astype(float)
     shape = ds.pixel_array.shape
     if is16Bit:
@@ -160,12 +162,15 @@ def process_image(ds,is16Bit=True):
     return image_2d_scaled,shape,isRGB,bit_depth
 
 
-def _make_mammo_img(dcm,arr):
-    arr = apply_window(arr,dcm)
+def _make_mammo_img(dcm,arr,dcm_dict):
+    arr = apply_window(arr,dcm,dcm_dict)
     arr = verify_lat(dcm,arr)
     return arr
-def apply_window(arr,dcm): 
-    w_min,w_max = get_window_params(dcm) 
+def apply_window(arr,dcm,dcm_dict):  
+    try: 
+        w_min,w_max = get_window_params(dcm) 
+    except:  
+        w_min,w_max = get_window_fallback(dcm_dict)
     arr[arr<w_min] = w_min
     arr[arr>w_max] = w_max 
     return arr 
@@ -178,11 +183,14 @@ def get_window_params(dcm):
     w_max =  w_c + w_w/2
     return  w_min,w_max
 def verify_lat(dcm,arr): 
-    function_sequence = dcm[MammoTomoTags.SharedFunctionalGroupSequence.value][0]
-    img_laterality = function_sequence[MammoTomoTags.FrameAnatomySequence.value][0][MammoTomoTags.FrameLaterality.value].value 
-    est_laterality =  estimate_image_lat(dcm.pixel_array) 
-    if img_laterality != est_laterality: 
-        arr = np.flip(arr,axis=[-1])
+    try: 
+        function_sequence = dcm[MammoTomoTags.SharedFunctionalGroupSequence.value][0]
+        img_laterality = function_sequence[MammoTomoTags.FrameAnatomySequence.value][0][MammoTomoTags.FrameLaterality.value].value 
+        est_laterality =  estimate_image_lat(dcm.pixel_array) 
+        if img_laterality != est_laterality: 
+            arr = np.flip(arr,axis=[-1])
+    except: 
+        arr = arr 
     return arr
 def estimate_image_lat(pixel_array) -> str:
     if len(pixel_array.shape)==3: 

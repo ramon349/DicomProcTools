@@ -80,13 +80,25 @@ def img_handling(arr:np.array,png_file:str):
     else: 
         return found_err
 
+
+from pydicom.multival import MultiValue 
+
+def check_multival(val): 
+    if isinstance(val,str):
+        return float(val)  
+    if isinstance(val,MultiValue): 
+        return float(val[0])
+    raise Exception("The Windowing prameter is bad")
+
 def get_window_param(dcm_dict): 
     window_center,window_width=None,None
     for k,v in dcm_dict.items():
-        if 'WindowCenter' in k:
-            window_center = float(v)  
-        if 'WindowWidth' in k: 
-            window_width  = float(v)
+        if 'Explanation' in k: 
+            continue 
+        if 'WindowCenter' in k :
+            window_center = check_multival(v)
+        if 'WindowWidth' in k:  
+            window_width  = check_multival(v)
         if window_center and window_width: 
             break 
     w_min = window_center - window_width//2
