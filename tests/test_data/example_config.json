@@ -1,0 +1,11 @@
+{
+    "DICOMHome": "DummyPath",
+    "OutputDirectory": "DummyStuff",
+    "SaveBatchSize": 500,
+    "PublicHeadersOnly": true,
+    "SpecificHeadersOnly":false,
+    "SaveImages": true,
+    "ApplyVOILUT":true,
+    "NumProcesses": 12 ,
+    "Extractor":"General"
+}

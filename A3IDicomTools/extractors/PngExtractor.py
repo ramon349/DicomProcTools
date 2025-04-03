@@ -1,44 +1,37 @@
-import os
-import glob
-import hashlib
 import logging
-from multiprocessing import Pool
-import time
-import pickle
-import numpy as np
-import pandas as pd
 import pydicom as pyd
-import png
-from pydicom.pixel_data_handlers import apply_voi_lut
+
 # pydicom imports needed to handle data errors
 from pydicom import config
 from pydicom import values
-import pathlib
-from pathlib import Path
-from functools import partial
-from tqdm import tqdm 
-from pathlib import Path 
-from .extractUtils import extract_all_tags
-class ExtractorRegister: 
-    __data = {} 
-    @classmethod 
-    def register(cls,cls_name=None):
+
+
+class ExtractorRegister:
+    __data = {}
+
+    @classmethod
+    def register(cls, cls_name=None):
         def decorator(cls_obj):
             cls.__data[cls_name] = cls_obj
             return cls_obj
+
         return decorator
+
     @classmethod
-    def get_extractor(cls,key):
+    def get_extractor(cls, key):
         return cls.__data[key]
+
     @classmethod
     def get_extractors(cls):
-        return list(cls.__data.keys() )
+        return list(cls.__data.keys())
+
     @classmethod
-    def build_extractor(cls,conf):
-        key = conf['Extractor']
+    def build_extractor(cls, conf):
+        key = conf["Extractor"]
         extractor = cls.get_extractor(key)
         return extractor(conf)
-    
+
+
 # Function when pydicom fails to read a value attempt to read as other types.
 def fix_mismatch_callback(raw_elem, **kwargs):
     """
@@ -81,10 +74,3 @@ def fix_mismatch(with_VRs=["PN", "DS", "IS", "LO", "OB"]):
     config.data_element_callback_kwargs = {
         "with_VRs": with_VRs,
     }
-
-
-        
-
-
-
-
