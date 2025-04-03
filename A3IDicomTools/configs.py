@@ -2,9 +2,9 @@ import argparse
 import json
 from collections import (
     deque,
-)  # just for fun using dequeue instead of just a list for faster appends
+)
+
 from .extractors.PngExtractor import ExtractorRegister
-from pprint import pprint
 
 
 class LoadFromFile(argparse.Action):
@@ -69,15 +69,27 @@ def build_args():
         help="Save the metadata in in batches of N as we extracted them ",
     )
     parser.add_argument(
-        "--SavePNGs", required=True, type=bool, help="Save Images as PNGs"
+        "--SaveImages", required=True, type=bool, help="Save Images as PNGs"
     )
     parser.add_argument("--NumProcesses", type=int, required=True)
-    parser.add_argument("--PublicHeadersOnly", type=parse_bool, required=True, default=True)
+    parser.add_argument(
+        "--PublicHeadersOnly", type=parse_bool, required=True, default=True
+    )
     parser.add_argument("--SpecificHeadersOnly", type=str, required=True, default=False)
-    parser.add_argument("--ApplyVOILUT",type=parse_bool,required=True,default=True)
-    parser.add_argument("--Extractor",type=str,required=True,choices=ExtractorRegister.get_extractors())
-    parser.add_argument("--HashSeed",type=int,required=False,default=42)
+    parser.add_argument("--ApplyVOILUT", type=parse_bool, required=True, default=True)
+    parser.add_argument(
+        "--Extractor",
+        type=str,
+        required=True,
+        choices=ExtractorRegister.get_extractors(),
+    )
+    parser.add_argument("--HashSeed", type=int, required=False, default=42)
+    parser.add_argument(
+        "--ExtractNested", type=parse_bool, required=False, default=False
+    )
+    parser.add_argument("--Debug", type=parse_bool, required=False, default=False)
     return parser
+
 
 def get_params():
     args = build_args()
