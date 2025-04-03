@@ -17,7 +17,7 @@ from multiprocessing import Pool
 from tqdm import tqdm
 import pydicom as pyd 
 from enum import Enum,StrEnum
-from .functional_extractors import process_png,process_tomo,process_general
+from .functional_extractors import process_ctmri, process_png,process_tomo,process_general
 from ..help_data.uid_categories import _mr_tags,_tomo_tags,_xray_tags
 from glob import glob 
 class StorageClass(StrEnum): 
@@ -177,13 +177,23 @@ class GeneralExtractor():
     
     def get_dicom_files(self):
         from collections import defaultdict
-        storage_d = defaultdict(list)
+        storage_d = defaultdict(list) 
         with Pool(self.processes) as P: 
-            path_glob = Path(self.dicom_home).rglob("*.dcm")
+            path_glob = self.filter_generator(Path(self.dicom_home).rglob("*.dcm"))
             proc = P.imap_unordered(read_and_categorize_dcm,path_glob)
             for path,store_class in tqdm(proc,desc="Reading and categorizing DCMS"): 
                 storage_d[store_class].append(path)
         return storage_d 
+    def filter_generator(self,path_generator): 
+        seen_dirs = set() 
+        for dcm_path in path_generator: 
+            parent_path = str(dcm_path.parent) 
+            if parent_path in seen_dirs: 
+                continue
+            else: 
+                seen_dirs.add(parent_path) 
+                yield dcm_path
+
     def _write_filelist(self,filelist): 
         with open(self.pickle_file,'wb') as f: 
             pickle.dump(filelist,f)
@@ -194,7 +204,7 @@ def read_and_categorize_dcm(dcm_path:pathlib.Path):
     sop_class_uid = dcm[sop_class_uid_tag].value 
     store_class = StorageClass.OTHER
     if  sop_class_uid in _mr_tags: 
-        store_class = StorageClass.MR
+        store_class = StorageClass.MRCT
     if sop_class_uid in  _xray_tags: 
         store_class = StorageClass.XRAY
     if sop_class_uid in  _tomo_tags: 
@@ -207,7 +217,7 @@ def general_extract(work_tup,save_dir=None,print_images=None):
     match sop_tag: 
         case StorageClass.MRCT: 
             #call the mr CT processor 
-            pass 
+            process_ctmri(dcm_path=dcm_path,save_dir=save_dir,print_images=print_images)
         case StorageClass.TOMO: 
             #call the TIMI procesor
             meta_row =  process_tomo(dcm_path=dcm_path,save_dir=save_dir,print_images=print_images)

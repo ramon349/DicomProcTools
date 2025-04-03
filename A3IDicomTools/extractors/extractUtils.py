@@ -6,6 +6,9 @@ import pydicom as pyd
 import numpy as np 
 import hashlib
 import png 
+from pydicom import valuerep as tagTypes
+from pydicom import multival as multivalTypes 
+from pydicom import uid as UidTypes
 def get_dcms(dicom_home:str,group_volumes=False) -> List: 
     """" get the dicom files in a directory. Idea is to get all of the files or 
     group them into batches based on  file ending name. That woul be useful for dicoms 
@@ -16,29 +19,7 @@ def get_dcms(dicom_home:str,group_volumes=False) -> List:
     return candidate_files
 
 
-def get_dcm_tags(dcm:pyd.Dataset,outlist=None,key=""):
-    if len(key) >0:
-        key = key + "_"
-    if outlist is None:
-        outlist=[]
-    for tag in dcm.dir():
-        if tag != 'PixelData':
-            value = getattr(dcm,tag)
-        if type(value) is pyd.sequence.Sequence:
-            # we are skippign these for now 
-            pass 
-        else:
-            if type(value) is pyd.valuerep.DSfloat:
-                value = float(value)
-            elif type(value) is pyd.valuerep.IS:
-                value = str(value)
-            elif type(value) is pyd.valuerep.MultiValue:
-                value = tuple(value)
-            elif type(value) is pyd.uid.UID:
-                value = str(value)
-            outlist.append((key + tag, value))
 
-    return outlist
 
 def proc_img(pix_arr:np.array,dcm_path:str,dcm_tags:dict,config:dict):
     im_name = os.path.split(dcm_path)[1] 
@@ -81,14 +62,15 @@ def img_handling(arr:np.array,png_file:str):
         return found_err
 
 
-from pydicom.multival import MultiValue 
+from collections.abc import Sequence 
 
 def check_multival(val): 
     if isinstance(val,str):
-        return float(val)  
-    if isinstance(val,MultiValue): 
+        return  float(val) 
+    if isinstance(val,Sequence): 
         return float(val[0])
-    raise Exception("The Windowing prameter is bad")
+    #if you make it to the end it's likely a float or None 
+    return val 
 
 def get_window_param(dcm_dict): 
     window_center,window_width=None,None
@@ -108,7 +90,13 @@ def extract_all_tags(dcm,tag_prefix="",extract_nested=True):
     dcm_tags = [e for e in dcm.dir() if e !='PixelData']
     tag_d = {} 
     for tag in dcm_tags: 
-        value = getattr(dcm,tag) 
+        try: 
+            #pull a value from the dcm tags
+            value = getattr(dcm,tag)  
+            # parse it into  a usable value
+            value = proc_tag(value)
+        except: 
+            continue
         if type(value) is pyd.sequence.Sequence: 
             if extract_nested:
                 for e in  value: 
@@ -117,3 +105,22 @@ def extract_all_tags(dcm,tag_prefix="",extract_nested=True):
             key_name = f"{tag_prefix}_{tag}" if tag_prefix else tag
             tag_d[key_name] = value
     return tag_d
+
+
+def proc_tag(tag): 
+    match tag: 
+        case tagTypes.PersonName: 
+            return tag.decode()  
+        case tagTypes.IS: 
+            return int(tag)
+        case multivalTypes.MultiValue: 
+            return tuple(tag)
+        case tagTypes.DSfloat: 
+            return float(tag)
+        case UidTypes.UID: 
+            return str(tag) 
+        case pyd.sequence.Sequence: 
+            #we do not parse the sequence tag. other code will handle it
+            return tag
+        case _: 
+            return str(tag)

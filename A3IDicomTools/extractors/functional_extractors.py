@@ -100,15 +100,20 @@ def process_tomo(dcm_path,save_dir,print_images):
     return dcm_tags  
 def process_ctmri(dcm_path,save_dir,print_images):
     stop_before_pixels = False if print_images else  True 
-    sample_dcm = next(Path(dcm_path).rglob("*.dcm"))
-    dcm = pyd.dcmread(sample_dcm, stop_before_pixels=stop_before_pixels)
-    dcm_tags =extract_all_tags(dcm,extract_nested=True)
+    dcm = pyd.dcmread(dcm_path, stop_before_pixels=stop_before_pixels)
+    dcm_dir = os.path.split(dcm_path)[0]
+    dcm_tags =extract_all_tags(dcm,extract_nested=False)
     nifti_path = make_hashpath(dcm,dcm_path,save_dir,extension=".nii.gz")
     err_code = 0 
     if print_images:
         try: 
-            dicom2nifti.dicom_series_to_nifti(dcm_path,nifti_path)
+            dicom2nifti.dicom_series_to_nifti(dcm_dir,nifti_path)
         except BaseException as error: 
+            error_message = f"img:{dcm_path} produced error {error}"
+            logging.error(msg=error_message)
+            nifti_path = None 
+            err_code = 1
+        except AttributeError as error: 
             error_message = f"img:{dcm_path} produced error {error}"
             logging.error(msg=error_message)
             nifti_path = None 

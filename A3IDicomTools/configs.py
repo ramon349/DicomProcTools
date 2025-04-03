@@ -1,13 +1,10 @@
 import argparse
-from ast import parse
 import json
 from collections import (
     deque,
 )
 
-from numpy import require  # just for fun using dequeue instead of just a list for faster appends
 from .extractors.PngExtractor import ExtractorRegister
-from pprint import pprint
 
 
 class LoadFromFile(argparse.Action):
@@ -33,7 +30,7 @@ class LoadFromFile(argparse.Action):
         return arg_name, arg_val
 
 
-def parse_bool(s: str):
+def parse_bool(s: str): 
     return eval(s) == True
 
 
