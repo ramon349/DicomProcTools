@@ -107,7 +107,7 @@ def process_ctmri(dcm_path,save_dir,print_images):
     err_code = 0 
     if print_images:
         try: 
-            dicom2nifti.dicom_series_to_nifti(dcm_dir,nifti_path)
+            dicom2nifti.dicom_series_to_nifti(dcm_dir,nifti_path,reorient_nifti=True) #TODO: Make reorientation an option
         except BaseException as error: 
             error_message = f"img:{dcm_path} produced error {error}"
             logging.error(msg=error_message)

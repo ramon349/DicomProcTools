@@ -217,7 +217,7 @@ def general_extract(work_tup,save_dir=None,print_images=None):
     match sop_tag: 
         case StorageClass.MRCT: 
             #call the mr CT processor 
-            process_ctmri(dcm_path=dcm_path,save_dir=save_dir,print_images=print_images)
+            meta_row = process_ctmri(dcm_path=dcm_path,save_dir=save_dir,print_images=print_images)
         case StorageClass.TOMO: 
             #call the TIMI procesor
             meta_row =  process_tomo(dcm_path=dcm_path,save_dir=save_dir,print_images=print_images)
