@@ -4,7 +4,7 @@
 
 
 # Installation 
-- Have an enviroment with python 3.10 installed 
+- Have an enviroment with python 3.11 installed 
 - 
 ```bash 
     cd /path/To/Repo
@@ -17,27 +17,27 @@
 ```
 ```json
 {
- "DICOMHome": "PathToDicomFolders",
- "OutputDirectory":"DirectoryToSaveOutputs",
- "SaveBatchSize": 20,
- "SavePNGs": true,
- "PublicHeadersOnly": true,
- "SpecificHeadersOnly": false,
- "NumProcesses": 10,
- "ApplyVOILUT": true,
- "Extractor":"TOMO"
+"DICOMHome": "DummyPath",
+"OutputDirectory": "DummyStuff",
+"SaveBatchSize": 500,
+"PublicHeadersOnly": true,
+"SpecificHeadersOnly":false,
+"SaveImages": true,
+"ApplyVOILUT":true,
+"NumProcesses": 12 ,
+"Extractor":"General"
 }
 ```
 
 # Parameters Explained
-- SaveBatchSize: Sometimes dicom tags are excessively large. As a workaround we save batches of metadata with sizes (100-200) if using privateTages
-- SavePngs: Save the images. If set to False no images are saved 
+- SaveBatchSize: Sometimes dicom tags are excessively large. As a workaround we save batches of metadata with batchSizes (100-200) 
+- SaveImages: Save the images. If set to False no images are saved 
 - PublicHeadersOnly: If set to false we will also output Private dicom tags. 99.9% of the time private tags are not used 
 - SpecificHeadersOnly: DONOT modify 
 - NumProcesses: Number of processes to use for parallel extraction. Warning more does not always mean better. 
 - ApplyVoiLut: Apply Windowing operation only used for mammograms and x-ray images 
 - Extractor: Type of extractor to use Currently support 
-    - "PNG" for Mammograms,X-ray,RetinalFundus any Modality that is stored as 2D 
-    - "TOMO" Process multiframe Tomography images. Only processes images with specific SOPClassUIDs. 
+    - "General" Will run extraction of all the images. Will apply unique processing to MRI/CT,X-ray,Tomogram 
+    - Other modalities will be ignored for now 
 
 

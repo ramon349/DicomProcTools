@@ -1,17 +1,15 @@
 
 [build-system]
 requires = ["setuptools>=61.0",
-"numpy==1.26.4",
-"pydicom==2.4.4",
-"python-gdcm==3.0.23.1",
+"pydicom==3.0.1",
 "nibabel==5.2.1",
-"tqdm==4.65.0",
+"dicom2nifti==2.6.0"
 ]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "A3IDicomTools"
-version = "0.1"
+version = "0.2"
 authors = [
   { name="Ramon Correa", email="rlcorrea@asu.edu" },
 ]
