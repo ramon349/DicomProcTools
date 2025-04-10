@@ -40,4 +40,10 @@
     - "General" Will run extraction of all the images. Will apply unique processing to MRI/CT,X-ray,Tomogram 
     - Other modalities will be ignored for now 
 
+# Differences from Niffler extraction code 
+- When extracting NIFTI's the  column 'file' will be the path to the dicom file used to extract metadata. Old extractions would have the directory to the series 
+- image_path: the hashing for the nifti file has been updated to be the path of the dicom file. This avoids issues with overlapping  ids in some rare cases 
+- There is no mapping file. the metadata file contains an 'image_path' column.  
+- Failed extractions WILL HAVE NaN 'image_path' columns. So you must drop them. 
+- Based on the dataset available to you. there will be pngs and niftis in the file. You must filter accordingly.
 
