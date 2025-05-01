@@ -1,6 +1,6 @@
 from collections import defaultdict
 from typing import Dict, List
-
+from collections import defaultdict
 from .PngExtractor import ExtractorRegister, fix_mismatch
 import pathlib
 import logging
@@ -54,7 +54,8 @@ class GeneralExtractor:
         self.ApplyVOILUT = config["ApplyVOILUT"]
         self.ExtractNested = config["ExtractNested"]
         self.Debug = config["Debug"]
-        self.populate_extraction_dirs()
+        self.populate_extraction_dirs() 
+        self.ApplyParentFilter = config['ApplyParentFilter']
         logging.basicConfig(filename=LOG_FILENAME, level=logging.DEBUG)
         logging.info("------- Values Initialization DONE -------")
 
@@ -167,6 +168,7 @@ class GeneralExtractor:
                 general_extract,
                 print_images=self.print_images,
                 save_dir=self.img_destination,
+                config = self.config
             )
             proc = p.imap_unordered(extract_func, filelist)
             for i, dcm_meta in tqdm(enumerate(proc), total=total_len):
@@ -191,11 +193,12 @@ class GeneralExtractor:
             meta_df.to_csv(csv_destination)
 
     def get_dicom_files(self):
-        from collections import defaultdict
 
         storage_d = defaultdict(list)
         with Pool(self.processes) as P:
-            path_glob = self.filter_generator(Path(self.dicom_home).rglob("*.dcm"))
+            path_glob = Path(self.dicom_home).rglob("*.dcm")
+            if self.ApplyParentFilter: 
+                path_glob = self.filter_generator(path_glob)
             proc = P.imap_unordered(read_and_categorize_dcm, path_glob)
             for path, store_class in tqdm(proc, desc="Reading and categorizing DCMS"):
                 storage_d[store_class].append(path)
@@ -232,19 +235,19 @@ def read_and_categorize_dcm(dcm_path: pathlib.Path):
     return dcm_path, store_class
 
 
-def general_extract(work_tup, save_dir=None, print_images=None):
+def general_extract(work_tup, save_dir=None, print_images=None,config=None):
     sop_tag, dcm_path = work_tup
     meta_row = None
     match sop_tag:
         case StorageClass.MRCT:
             # call the mr CT processor
             meta_row = process_ctmri(
-                dcm_path=dcm_path, save_dir=save_dir, print_images=print_images
+                dcm_path=dcm_path, save_dir=save_dir, print_images=print_images,
             )
         case StorageClass.TOMO:
             # call the TIMI procesor
             meta_row = process_tomo(
-                dcm_path=dcm_path, save_dir=save_dir, print_images=print_images
+                dcm_path=dcm_path, save_dir=save_dir, print_images=print_images,config=config
             )
         case StorageClass.XRAY:
             meta_row = process_png(

@@ -11,6 +11,7 @@ from enum import Enum
 from dicom2nifti.common import multiframe_create_affine
 import nibabel as nib
 from .extractUtils import get_window_param as get_window_fallback
+from dicom2nifti.convert_dicom import dicom_array_to_nifti
 
 
 class MammoTomoTags(Enum):
@@ -80,19 +81,27 @@ def process_png(dcm_path, save_dir, print_images):
     return dcm_tags
 
 
-def process_tomo(dcm_path, save_dir, print_images):
+def process_tomo(dcm_path, save_dir, print_images,reorient=False,config=None):
     stop_before_pixels = False if print_images else True
     dcm = pyd.dcmread(dcm_path, stop_before_pixels=stop_before_pixels)
     dcm_tags = extract_all_tags(dcm, extract_nested=True)
     nifti_path = make_hashpath(dcm, dcm_path, save_dir, extension=".nii.gz")
-    err_code = 0
+    err_code = 0 
+    apply_voi= config['ApplyVOILUT'] 
+    reorient = config['Reorient'] 
     if print_images:
-        try:
-            arr = dcm.pixel_array
-            arr = _make_mammo_img(dcm, arr, dcm_tags)
-            affine, max_slice_inc = multiframe_create_affine([dcm], arr)
-            my_vol = nib.nifti1.Nifti1Image(arr, affine=affine)
-            nib.save(my_vol, nifti_path)
+        try: 
+            #use the dicom2nifti processing 
+            out_info = _dicomnifti_proc([dcm],output_file=nifti_path,reorient_nifti=reorient)
+            # use the dicom2nifti outputs to then apply windowing 
+            #the first call alread handles saving the image so no need to reload
+            if apply_voi: 
+                og_vol = out_info['NII'] 
+                arr = og_vol.get_fdata() 
+                arr = apply_window(arr,dcm,dcm_tags)  
+                #save windowed image using the dicom2nifti modifications 
+                new_vol = nib.nifti1.Nifti1Image(arr,affine=og_vol.affine,header=og_vol.header) 
+                nib.save(new_vol,nifti_path)
         except BaseException as error:
             error_message = f"img:{dcm_path} produced error {error}"
             logging.error(msg=error_message)
@@ -108,17 +117,19 @@ def process_tomo(dcm_path, save_dir, print_images):
     return dcm_tags
 
 
-def process_ctmri(dcm_path, save_dir, print_images):
+
+def process_ctmri(dcm_path, save_dir, print_images,config=None):
     stop_before_pixels = False if print_images else True
     dcm = pyd.dcmread(dcm_path, stop_before_pixels=stop_before_pixels)
     dcm_dir = os.path.split(dcm_path)[0]
     dcm_tags = extract_all_tags(dcm, extract_nested=False)
     nifti_path = make_hashpath(dcm, dcm_path, save_dir, extension=".nii.gz")
     err_code = 0
+    reorient = config['Reorient'] 
     if print_images:
         try:
             dicom2nifti.dicom_series_to_nifti(
-                dcm_dir, nifti_path, reorient_nifti=True
+                dcm_dir, nifti_path, reorient_nifti=reorient
             )  # TODO: Make reorientation an option
         except BaseException as error:
             error_message = f"img:{dcm_path} produced error {error}"
@@ -229,3 +240,8 @@ def estimate_image_lat(pixel_array) -> str:
         left_edge = np.sum(pixel_array[:, 0])  # sum of left edge pixels
         right_edge = np.sum(pixel_array[:, -1])  # sum of right edge pixels
     return "R" if left_edge < right_edge else "L"
+
+
+def _dicomnifti_proc(dicom_list,output_file,reorient_nifti=True): 
+    results =  dicom_array_to_nifti(dicom_list=dicom_list,output_file=output_file,reorient_nifti=reorient_nifti) 
+    return results  
