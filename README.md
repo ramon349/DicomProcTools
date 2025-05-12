@@ -39,6 +39,13 @@
 - Extractor: Type of extractor to use Currently support 
     - "General" Will run extraction of all the images. Will apply unique processing to MRI/CT,X-ray,Tomogram 
     - Other modalities will be ignored for now 
+- ApplyParentFilter: Should only be set to true if running extraction  CT/MR images. Since it will filter studies in the following way 
+/patient/study/series/f1.dcm 
+/patient/study/series/f2.dcm 
+if set to true we will only read 1 dcm file. making the metadatafile like this 
+/patient/study/series/f1.dcm  
+- Reorient:  When making niftis we usually reorient to RAS orientation. This is set to True as the default to maintain consistency with older projects 
+
 
 # Differences from Niffler extraction code 
 - When extracting NIFTI's the  column 'file' will be the path to the dicom file used to extract metadata. Old extractions would have the directory to the series 
