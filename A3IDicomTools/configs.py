@@ -88,6 +88,9 @@ def build_args():
         "--ExtractNested", type=parse_bool, required=False, default=False
     )
     parser.add_argument("--Debug", type=parse_bool, required=False, default=False)
+    parser.add_argument("--Reorient",type=parse_bool,required=True,default=False,help="If TOMO/CT/MR volumes should be reoriented see nibabel orientatins for info. NOTE: CAREFUL WITH CHOICE. Keep false for consistency with past")
+    parser.add_argument("--ApplyParentFilter",type=parse_bool,required=True,default=False,help='If extrating MRI/CT set to True for faster processing') 
+
     return parser
 
 

@@ -12,7 +12,8 @@ from dicom2nifti.common import multiframe_create_affine
 import nibabel as nib
 from .extractUtils import get_window_param as get_window_fallback
 from dicom2nifti.convert_dicom import dicom_array_to_nifti
-
+import dicom2nifti 
+dicom2nifti.disable_resampling()
 
 class MammoTomoTags(Enum):
     # TODO make a custum enum class that makes it so i don't have to call .value
