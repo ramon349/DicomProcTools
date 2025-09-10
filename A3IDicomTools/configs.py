@@ -69,7 +69,7 @@ def build_args():
         help="Save the metadata in in batches of N as we extracted them ",
     )
     parser.add_argument(
-        "--SaveImages", required=True, type=bool, help="Save Images as PNGs"
+        "--SaveImages", required=True, type=parse_bool, help="Save Images as PNGs"
     )
     parser.add_argument("--NumProcesses", type=int, required=True)
     parser.add_argument(

@@ -242,7 +242,7 @@ def general_extract(work_tup, save_dir=None, print_images=None,config=None):
         case StorageClass.MRCT:
             # call the mr CT processor
             meta_row = process_ctmri(
-                dcm_path=dcm_path, save_dir=save_dir, print_images=print_images,
+                dcm_path=dcm_path, save_dir=save_dir, print_images=print_images,config=config
             )
         case StorageClass.TOMO:
             # call the TIMI procesor
@@ -251,7 +251,7 @@ def general_extract(work_tup, save_dir=None, print_images=None,config=None):
             )
         case StorageClass.XRAY:
             meta_row = process_png(
-                dcm_path, save_dir=save_dir, print_images=print_images
+                dcm_path, save_dir=save_dir, print_images=print_images,config=config
             )
         case StorageClass.OTHER:
             meta_row = process_general(dcm_path)
