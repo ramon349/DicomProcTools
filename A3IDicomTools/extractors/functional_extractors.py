@@ -47,7 +47,7 @@ def process_general(dcm_path):
     return dcm_tags
 
 
-def process_png(dcm_path, save_dir, print_images):
+def process_png(dcm_path, save_dir, print_images,config=None):
     stop_before_pixels = False if print_images else True
     dcm = pyd.dcmread(dcm_path, stop_before_pixels=stop_before_pixels)
     dcm_tags = extract_all_tags(dcm, extract_nested=True)
