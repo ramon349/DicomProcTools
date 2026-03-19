@@ -1,11 +1,12 @@
 {
-    "DICOMHome": "DummyPath",
-    "OutputDirectory": "DummyStuff",
+    "DICOMHome": "/path/to/your/dicomData/",
+    "OutputDirectory": "/path/to/anotherDir/toStore/Data",
     "SaveBatchSize": 500,
     "PublicHeadersOnly": true,
     "SpecificHeadersOnly":false,
     "SaveImages": true,
     "ApplyVOILUT":true,
     "NumProcesses": 12 ,
-    "Extractor":"General"
+    "Extractor":"General",
+    "ApplyParentFilter":true
 }
